@@ -3,3 +3,4 @@ contact.csv
 jarvis.db
 /engine/_pycache_
 /engine/cookies.json
+engine/config.py
