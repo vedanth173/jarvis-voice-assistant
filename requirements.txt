@@ -7,4 +7,5 @@ pywhatkit>=5.4
 pyperclip>=1.8.2
 playsound==1.2.2
 pvporcupine
-hugchat
+wikipedia>=1.4.0
+google-genai>=2.0.0

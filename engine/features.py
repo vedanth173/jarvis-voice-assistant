@@ -130,12 +130,52 @@ def extract_yt_term(command):
     return match.group(1) if match else None
 
 
+def listen_free_hotword():
+    """Listens continuously for wake words ('jarvis', 'hey jarvis') using SpeechRecognition (100% free, no API key needed)."""
+    import speech_recognition as sr
+    
+    r = sr.Recognizer()
+    r.energy_threshold = 300
+    r.dynamic_energy_threshold = True
+    r.pause_threshold = 0.6
+
+    print("\n" + "=" * 55)
+    print("  [Hands-Free Mode] FREE Wake-Word Listener is ACTIVE!")
+    print("  No Picovoice API key needed.")
+    print("  Just say 'Jarvis' or 'Hey Jarvis' to activate hands-free!")
+    print("=" * 55 + "\n")
+
+    try:
+        with sr.Microphone() as source:
+            r.adjust_for_ambient_noise(source, duration=1)
+            while True:
+                try:
+                    audio = r.listen(source, phrase_time_limit=3, timeout=None)
+                    spoken = r.recognize_google(audio, language="en-in").lower()
+                    
+                    wake_words = ["jarvis", "service", "java", "hey jarvis", "alexa"]
+                    if any(w in spoken for w in wake_words):
+                        print(f"[Wake Word Detected: '{spoken}'] Activating Jarvis...")
+                        pyautogui.keyDown("win")
+                        pyautogui.press("j")
+                        time.sleep(1)
+                        pyautogui.keyUp("win")
+                        time.sleep(5)  # Wait for voice command processing
+                except sr.UnknownValueError:
+                    pass
+                except sr.RequestError:
+                    time.sleep(1)
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"[Free Wake Word Notice]: {e}")
+
+
 def hotword():
-    """Listens for wake words (e.g. 'Jarvis', 'Alexa') using Porcupine."""
+    """Listens for wake words. Uses Porcupine if AccessKey is provided, otherwise falls back to Free SpeechRecognition."""
     if not PORCUPINE_ACCESS_KEY:
-        print("\n[NOTE] Picovoice AccessKey is not set in engine/config.py.")
-        print("Hotword detection ('Jarvis', 'Alexa') is disabled.")
-        print("You can activate Jarvis using the mic button in the UI or by pressing Win+J.\n")
+        # Seamlessly switch to 100% free built-in wake-word listener (no API key required)
+        listen_free_hotword()
         return
 
     porcupine = None
@@ -151,7 +191,7 @@ def hotword():
             input=True,
             frames_per_buffer=porcupine.frame_length
         )
-        print("Hotword listener running. Say 'Jarvis' or 'Alexa' to activate...")
+        print("Picovoice hotword listener running. Say 'Jarvis' or 'Alexa' to activate...")
         
         while True:
             keyword = audio_stream.read(porcupine.frame_length, exception_on_overflow=False)
@@ -167,7 +207,8 @@ def hotword():
                 pyautogui.keyUp("win")
                 
     except Exception as e:
-        print(f"[Hotword Notice] Hotword listener stopped: {e}")
+        print(f"[Porcupine Notice] Falling back to free listener: {e}")
+        listen_free_hotword()
     finally:
         if porcupine is not None:
             porcupine.delete()
@@ -175,6 +216,7 @@ def hotword():
             audio_stream.close()
         if paud is not None:
             paud.terminate()
+
 
 
 # find contacts
@@ -231,26 +273,15 @@ def whatsapp(mobile_no, message, flag, name):
     speak(jarvis_message)
 
 
-# chat bot 
+# chat bot - powered by engine.brain (conversational, Wikipedia, and Gemini)
 def chatBot(query):
-    user_input = query.lower().strip()
+    user_input = query.strip()
     if not user_input:
         return ""
-        
-    try:
-        cookie_path = os.path.join(BASE_DIR, "engine", "cookies.json")
-        if not os.path.exists(cookie_path) or not _HAS_HUGCHAT:
-            raise RuntimeError("HuggingChat or cookies.json not configured")
 
-        chatbot = hugchat.ChatBot(cookie_path=cookie_path)
-        id = chatbot.new_conversation()
-        chatbot.change_conversation(id)
-        response = chatbot.chat(user_input)
-        print(response)
-        speak(response)
-        return response
-    except Exception as e:
-        print(f"ChatBot notice: {e}")
-        msg = f"I heard you say: {query}. However, my AI chatbot service is currently offline. Please configure your HugChat cookies or try another voice command."
-        speak(msg)
-        return msg
+    from engine.brain import process_assistant_query
+    response = process_assistant_query(user_input)
+    print(f"Jarvis response: {response}")
+    speak(response)
+    return response
+
