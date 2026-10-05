@@ -1,0 +1,10 @@
+eel>=0.18.0
+pyttsx3>=2.90
+SpeechRecognition>=3.10.0
+pyaudio>=0.2.14
+pyautogui>=0.9.54
+pywhatkit>=5.4
+pyperclip>=1.8.2
+playsound==1.2.2
+pvporcupine
+hugchat
